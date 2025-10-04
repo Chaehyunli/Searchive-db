@@ -1,0 +1,40 @@
+# ============================================
+# IDE / Editor Files
+# ============================================
+# JetBrains IDEs (IntelliJ, PyCharm)
+.idea/
+*.iml
+
+# Visual Studio Code
+.vscode/
+
+# ============================================
+# OS Generated Files
+# ============================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# ============================================
+# Python Files (For Backend)
+# ============================================
+__pycache__/
+*.pyc
+venv/
+*.env
+
+# ============================================
+# Node.js Files (For Frontend)
+# ============================================
+node_modules/
+build/
+.npm/
+npm-debug.log
+yarn-error.log
+
+# ============================================
+# Project Specific
+# ============================================
+.claude

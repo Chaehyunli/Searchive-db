@@ -1,0 +1,149 @@
+# version: '3.8'
+
+services:
+  # ============================================
+  # PostgreSQL - Relational Database
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: searchive-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - searchive-network
+
+  # ============================================
+  # MinIO - Object Storage
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: searchive-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - searchive-network
+
+  # ============================================
+  # MinIO Initialization
+  # ============================================
+  minio-init:
+    image: minio/mc:latest
+    container_name: searchive-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./minio-init/init-bucket.sh:/init-bucket.sh:ro
+    entrypoint: sh /init-bucket.sh
+    networks:
+      - searchive-network
+
+  # ============================================
+  # Redis - Session Store
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: searchive-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - searchive-network
+
+  # ============================================
+  # Elasticsearch - Search Engine
+  # ============================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: searchive-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - searchive-network
+
+  # ============================================
+  # Ollama - AI Model Server
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: searchive-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - searchive-network
+
+# ============================================
+# Volumes for Data Persistence
+# ============================================
+volumes:
+  postgres-data:
+    name: searchive-postgres-data
+  minio-data:
+    name: searchive-minio-data
+  redis-data:
+    name: searchive-redis-data
+  elasticsearch-data:
+    name: searchive-elasticsearch-data
+  ollama-data:
+    name: searchive-ollama-data
+
+# ============================================
+# Network Configuration
+# ============================================
+networks:
+  searchive-network:
+    name: searchive-network
+    driver: bridge
