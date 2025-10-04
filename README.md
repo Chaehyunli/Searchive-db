@@ -133,7 +133,7 @@ cp .env.example .env
 ### 3. 전체 인프라 실행
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. AI 모델 다운로드 (최초 1회)
@@ -147,7 +147,7 @@ docker exec -it searchive-ollama ollama pull llama3:8b
 각 서비스가 정상적으로 실행되었는지 확인:
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 **접속 가능한 서비스:**
@@ -160,12 +160,12 @@ docker-compose ps
 ### 6. 인프라 종료
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 **데이터 포함 완전 삭제:**
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
